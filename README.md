@@ -41,9 +41,9 @@ If you want users to sync data across devices, you need to configure Supabase pr
 
 https://supabase.com/dashboard
 
-### 2. Select your project
+### 2. Add your project keys
 
-The project URL in `script.js` is: `https://bkmbbtndwfaqwktzmewe.supabase.co`
+Copy your Project URL and anon public key from **Project Settings → API**, then paste them into `supabase-config.js`.
 
 ### 3. Configure Authentication URLs
 
@@ -62,45 +62,7 @@ https://your-vercel-url.vercel.app/**
 
 ### 4. Create the database table
 
-Go to: **SQL Editor** and run:
-
-```sql
--- Create the habit_data table
-CREATE TABLE habit_data (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID REFERENCES auth.users NOT NULL,
-  data JSONB NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Create unique index on user_id
-CREATE UNIQUE INDEX habit_data_user_id_idx ON habit_data(user_id);
-
--- Enable Row Level Security
-ALTER TABLE habit_data ENABLE ROW LEVEL SECURITY;
-
--- Policy: Users can only read their own data
-CREATE POLICY "Users can read own data"
-  ON habit_data FOR SELECT
-  USING (auth.uid() = user_id);
-
--- Policy: Users can insert their own data
-CREATE POLICY "Users can insert own data"
-  ON habit_data FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- Policy: Users can update their own data
-CREATE POLICY "Users can update own data"
-  ON habit_data FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
--- Policy: Users can delete their own data
-CREATE POLICY "Users can delete own data"
-  ON habit_data FOR DELETE
-  USING (auth.uid() = user_id);
-```
+Go to: **SQL Editor** and run the contents of `supabase-setup.sql`.
 
 This ensures:
 - ✅ Each user can only see/edit their own data
@@ -114,7 +76,8 @@ This ensures:
 ### Data Storage
 
 **localStorage (Browser)**
-- Stores ALL data locally in your browser
+- Stores signed-out data locally in your browser
+- Stores signed-in cache under a per-user browser key
 - Works completely offline
 - No account needed
 - Private to your device
@@ -132,9 +95,11 @@ This ensures:
    - Works perfectly, just no cross-device sync
 
 2. **After signing in**:
-   - Data syncs to Supabase every 30 seconds
+   - Existing signed-out data uploads only when your cloud account is empty
+   - Existing cloud data wins over anonymous local data when your account already has data
+   - Data syncs to Supabase after edits
    - When you open on another device → pulls latest from cloud
-   - If offline → queues sync for later
+   - Each Supabase user can only read/write their own row because of RLS
 
 ---
 
@@ -171,6 +136,14 @@ python3 -m http.server 3000
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for how to get this online in 2 minutes!
 
+### Cloudflare deploy note
+
+This app is deployed from the parent folder using Cloudflare Wrangler, with `assets.directory` set to `journal_app`. The working command is:
+
+```bash
+npx --yes wrangler@latest deploy
+```
+
 ---
 
 ## 📁 File Structure
@@ -180,6 +153,8 @@ planner/
 ├── index.html          # Main HTML structure
 ├── style.css          # All the styling
 ├── script.js          # App logic + Supabase integration
+├── supabase-config.js # Public Supabase project URL + anon key
+├── supabase-setup.sql # Per-user data table + RLS policies
 ├── README.md          # You are here
 └── DEPLOYMENT.md      # How to deploy online
 ```
@@ -190,11 +165,13 @@ planner/
 
 ### Changing Supabase Project
 
-Edit `script.js` lines 67-68:
+Edit `supabase-config.js`:
 
 ```javascript
-const SUPABASE_URL='https://your-project.supabase.co'
-const SUPABASE_ANON_KEY='your-anon-key-here'
+window.LIFELINE_SUPABASE = {
+  url: 'https://your-project.supabase.co',
+  anonKey: 'your-anon-key-here'
+};
 ```
 
 Get these from: **Supabase Dashboard → Settings → API**
