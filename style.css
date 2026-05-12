@@ -825,6 +825,9 @@ td.off-day-cell{
   border-radius:12px;
   padding:10px;
   box-shadow:2px 2px 6px rgba(0,0,0,.08);
+  display:flex;
+  flex-direction:column;
+  min-height:0;
 }
 .mini-card h3{
   margin:0 0 6px;
@@ -834,7 +837,8 @@ td.off-day-cell{
 }
 .mini-card .note-edit{
   width:100%;
-  min-height:190px;
+  flex:1;
+  min-height:0;
   border:none;
   background:
     repeating-linear-gradient(
@@ -857,7 +861,8 @@ td.off-day-cell{
   display:flex;
   flex-direction:column;
   gap:8px;
-  height:190px;
+  flex:1;
+  min-height:0;
   overflow-y:auto;
   padding-right:4px;
 }
