@@ -4,17 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Monthly Habit Tracker</title>
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA2NCA2NCc+PHRleHQgeD0nNTAlJyB5PSc1MiUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZvbnQtc2l6ZT0nNDAnPuKcqOKcqOKcqDwvdGV4dD48L3N2Zz4=" type="image/svg+xml">
+<meta name="theme-color" content="#f4ead9">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="favicon.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <div class="container">
   <header>
     <h1 id="monthTitle">MONTH</h1>
     <div class="top-controls">
-      <button id="cloudBtn" class="restore-btn cloud-btn" type="button" title="Cloud sync">☁︎</button>
-      <button id="cloudSignOut" class="cloud-link" type="button" hidden>Sign out</button>
+      <div class="cloud-panel" aria-label="Cloud sync">
+        <button id="cloudSignInBtn" class="cloud-btn secondary" type="button">Sign in</button>
+        <button id="cloudLogoutBtn" class="cloud-btn secondary" type="button" hidden>Sign out</button>
+        <span id="cloudStatus" class="cloud-status">Local only</span>
+      </div>
+      <button id="backupBtn" class="restore-btn download-btn" type="button" title="Download backup" aria-label="Download backup">⬇</button>
+      <button id="restoreBtn" class="restore-btn upload-btn" type="button" title="Restore backup" aria-label="Restore backup">⬆</button>
+      <input id="restoreInput" type="file" accept="application/json,.json" hidden>
       <select id="monthSelect"></select>
       <select id="yearSelect"></select>
       <button id="addHabitBtn" type="button">＋ Add Habit</button>
@@ -28,7 +36,7 @@
       </div>
       <div class="bottom-cards">
         <div class="mini-card goals-card">
-          <h3>Goals</h3>
+          <h3>Insights</h3>
           <div id="monthlyGoals" class="note-edit" contenteditable="true"></div>
         </div>
         <div class="mini-card excited-card">
@@ -36,8 +44,8 @@
           <div id="monthlyExcited" class="note-edit" contenteditable="true"></div>
         </div>
         <div class="mini-card grateful-card">
-          <h3>Insights</h3>
-          <div id="monthlyInsights" class="note-edit" contenteditable="true"></div>
+          <h3>Month to-do</h3>
+          <div id="monthlyChecklist" class="monthly-checklist"></div>
         </div>
       </div>
     </div>
@@ -62,31 +70,19 @@
         <div id="dailyList" class="daily-list"></div>
       </div>
 
-      <div class="sticky-note pink">
-        <h3>🎟️ Events</h3>
-        <div id="eventsList" class="events-list"></div>
-      </div>
-
-
     </div>
   </div>
 </div>
 
-<div id="cloudModal" class="cloud-modal" aria-hidden="true">
-  <div class="cloud-backdrop" id="cloudBackdrop"></div>
-  <div class="cloud-card" role="dialog" aria-modal="true" aria-labelledby="cloudTitle">
-    <h3 id="cloudTitle">Cloud Sync</h3>
-    <label>Email
-      <input id="cloudEmail" type="email" autocomplete="email">
-    </label>
-    <label>Password
-      <input id="cloudPass" type="password" autocomplete="current-password">
-    </label>
-    <div class="cloud-actions">
-      <button id="cloudSignIn" type="button">Sign In</button>
-      <button id="cloudSignUp" type="button">Sign Up</button>
-      <button id="cloudCancel" type="button">Cancel</button>
-    </div>
+<div id="loginOverlay" class="login-overlay" aria-modal="true" role="dialog" aria-labelledby="loginOverlayTitle">
+  <div class="login-backdrop"></div>
+  <div class="login-card">
+    <h3 id="loginOverlayTitle">Sign In</h3>
+    <input id="cloudEmail" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com">
+    <input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button id="cloudLoginBtn" class="cloud-btn" type="button">Sign In</button>
+    <div id="loginStatus" class="login-status" aria-live="polite"></div>
+    <a href="#" id="signUpLink" class="sign-up-link">Don't have an account? Sign Up</a>
   </div>
 </div>
 
@@ -139,6 +135,12 @@
     <label class="habit-label">Emoji icon
       <input id="habitIconInput" type="text" placeholder="e.g. ✨">
     </label>
+    <label class="habit-label">Color
+      <div class="habit-color-field">
+        <select id="habitColorSelect" class="habit-color-select"></select>
+        <span id="habitColorPreview" class="habit-color-preview" aria-hidden="true"></span>
+      </div>
+    </label>
     <div class="habit-actions">
       <button id="habitDelete" class="danger" type="button" style="display:none;">Delete</button>
       <button id="habitSave" type="button">Add</button>
@@ -158,16 +160,12 @@
     <button type="button" data-color="#b86a16" class="color-chip" aria-label="Orange"></button>
     <button type="button" data-color="#d4a017" class="color-chip" aria-label="Golden"></button>
   </div>
-  <div class="context-row" role="presentation">
-    <button type="button" data-emoji="🎉" class="emoji-btn" aria-label="Celebration">🎉</button>
-    <button type="button" data-emoji="🥰" class="emoji-btn" aria-label="Cute">🥰</button>
-    <button type="button" data-emoji="😊" class="emoji-btn" aria-label="Happy">😊</button>
-    <button type="button" data-emoji="😤" class="emoji-btn" aria-label="Determined">😤</button>
-    <button type="button" data-emoji="⭐️" class="emoji-btn" aria-label="Star">⭐️</button>
-  </div>
 </div>
 
+<div id="etherealToast" class="ethereal-toast" aria-live="polite" aria-atomic="true"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

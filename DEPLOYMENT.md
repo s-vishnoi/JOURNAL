@@ -79,16 +79,11 @@ This publishes only the `journal_app` files as static assets. The current live s
 
 > Important: do not deploy the parent folder or the root workspace directly. The `journal_app` directory is the correct deploy target.
 
-## 5. Deploy Without Terminal
 
-### Netlify Drop
 
-1. Open https://app.netlify.com/drop.
-2. Drag the `JOURNAL/journal_app` folder into the page.
-3. Netlify gives you a public URL.
-4. Add that URL to Supabase Auth redirect URLs.
 
-### GitHub + Netlify, Vercel, or Cloudflare Pages
+
+### Cloudflare Pages
 
 Connect the repo in the hosting dashboard. After the first setup, every GitHub commit redeploys automatically.
 
