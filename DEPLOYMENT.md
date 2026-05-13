@@ -9,7 +9,6 @@ This version stays a simple HTML/CSS/JS app. Hosting serves the files, and Supab
 3. Open SQL Editor.
 4. Paste and run `supabase-setup.sql`.
 
-
 That creates `habit_data` with Row Level Security, so each signed-in user can only access their own journal data.
 
 ## 2. Add Supabase Keys
@@ -20,17 +19,14 @@ Copy:
 
 - Project URL
 - anon public key
- b6b2a97 (Document journal_app Cloudflare deploy workflow and working deploy target)
 
 Paste them into `supabase-config.js`:
-
 
 ```js
 window.LIFELINE_SUPABASE = {
   url: 'https://your-project-id.supabase.co',
   anonKey: 'your-anon-public-key'
 };
- b6b2a97 (Document journal_app Cloudflare deploy workflow and working deploy target)
 ```
 
 The anon key is designed to be public in browser apps. The RLS policies in `supabase-setup.sql` are what protect user data.
@@ -39,16 +35,7 @@ The anon key is designed to be public in browser apps. The RLS policies in `supa
 
 In Supabase, open Authentication > URL Configuration.
 
-For local testing, add:
 
-```text
-http://localhost:3000/**
-```
-
-After deploying, add your live URL too:
-
-```text
-https://your-journal-site.netlify.app/**
 ```
 
 ## 4. Deploy via Cloudflare Workers (Recommended)
@@ -103,4 +90,4 @@ Signed in:
 - Each signed-in Supabase user gets a separate local browser cache.
 - Existing signed-out local data uploads only if that user's cloud row is empty.
 - Existing cloud data loads automatically when available.
-- Changes save locally first, then sync to Supabase.
+- Since sign-in required, cloud storage is always available! 

@@ -34,9 +34,67 @@ header{
   margin-bottom:14px;
 }
 h1{font-size:2.2em}
+.month-heading{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  flex:1 1 auto;
+}
+#monthTitle{
+  margin:0;
+  flex:0 0 auto;
+}
 #monthTitle{
   font-family:"Trebuchet MS","Lucida Sans Unicode","Lucida Grande","Segoe UI",sans-serif;
   color:#666;
+}
+.farsi-word-of-day{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0;
+  min-width:clamp(190px, 28vw, 300px);
+  max-width:100%;
+  background:transparent;
+  box-shadow:none;
+  color:#7a6a4a;
+  font-family:"Tahoma","Segoe UI",sans-serif;
+  font-size:clamp(.76rem, .85vw, .9rem);
+  line-height:1;
+  white-space:nowrap;
+  flex:0 1 auto;
+}
+.farsi-word-of-day .farsi-word-line{
+  display:flex;
+  align-items:baseline;
+  gap:clamp(4px, .5vw, 6px);
+}
+.farsi-word-of-day .farsi-word{
+  font-size:clamp(.95rem, 1vw, 1.05rem);
+  font-weight:700;
+}
+.farsi-word-of-day .farsi-translation{
+  font-size:clamp(.76rem, .82vw, .86rem);
+  color:inherit;
+}
+.farsi-word-of-day .farsi-separator{
+  font-size:clamp(.72rem, .75vw, .78rem);
+  color:inherit;
+}
+.farsi-word-of-day .farsi-pronunciation{
+  font-size:clamp(.72rem, .75vw, .78rem);
+  color:inherit;
+}
+@media (max-width: 900px){
+  .month-heading{
+    flex-wrap:wrap;
+  }
+  .farsi-word-of-day{
+    min-width:0;
+    max-width:100%;
+    width:auto;
+  }
 }
 .top-controls{display:flex;gap:8px;align-items:center}
 .cloud-panel{

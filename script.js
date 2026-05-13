@@ -2,6 +2,7 @@ const table=document.getElementById('trackerTable')
 const monthSelect=document.getElementById('monthSelect')
 const yearSelect=document.getElementById('yearSelect')
 const monthTitle=document.getElementById('monthTitle')
+const farsiWordOfDay=document.getElementById('farsiWordOfDay')
 const backupBtn=document.getElementById('backupBtn')
 const restoreBtn=document.getElementById('restoreBtn')
 const restoreInput=document.getElementById('restoreInput')
@@ -58,6 +59,20 @@ const loginOverlay=document.getElementById('loginOverlay')
 let isSignUp = false
 
 const months=['January','February','March','April','May','June','July','August','September','October','November','December']
+const farsiWordsOfDay=[
+  {fa:'آرامش',en:'calm',pronunciation:'aa-raa-mesh'},
+  {fa:'مهربانی',en:'kindness',pronunciation:'mehr-bah-nee'},
+  {fa:'دوستی',en:'friendship',pronunciation:'doos-tee'},
+  {fa:'شادی',en:'joy',pronunciation:'shaa-dee'},
+  {fa:'امید',en:'hope',pronunciation:'o-meed'},
+  {fa:'رویا',en:'dream',pronunciation:'rooyaa'},
+  {fa:'نور',en:'light',pronunciation:'noor'},
+  {fa:'لبخند',en:'smile',pronunciation:'lab-khand'},
+  {fa:'سپاس',en:'gratitude',pronunciation:'se-paas'},
+  {fa:'شکوفه',en:'blossom',pronunciation:'sho-koo-feh'},
+  {fa:'لطافت',en:'softness',pronunciation:'la-ta-fat'},
+  {fa:'دلگرمی',en:'warmth',pronunciation:'del-ga-remi'}
+]
 const weekdays=['sun','mon','tue','wed','thu','fri','sat']
 const DAILY_LINES=12
 const DEFAULT_VISIBLE_DAILY_LINES=5
@@ -97,6 +112,7 @@ let cloudUser=null
 let cloudSaveTimer=null
 let cloudReady=false
 let cloudLoading=false
+let farsiWordRefreshTimer=null
 const baselineResetSpaceAt=new WeakMap()
 const goalHitMemory=new Map()
 const goalHitDelayUntil=new Map()
@@ -163,6 +179,26 @@ function daysInMonth(m,y){return new Date(y,m+1,0).getDate()}
 function key(){return currentYear+'-'+currentMonth}
 function createEventItemId(){
   return `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+}
+function getFarsiWordOfDay(date=new Date()){
+  const index=(date.getFullYear()*372 + date.getMonth()*31 + date.getDate())%farsiWordsOfDay.length
+  return farsiWordsOfDay[index]
+}
+function renderFarsiWordOfDay(){
+  if(!farsiWordOfDay) return
+  const word=getFarsiWordOfDay(new Date())
+  farsiWordOfDay.innerHTML=`<span class="farsi-word-line"><span class="farsi-word">${word.fa}</span><span class="farsi-pronunciation">${word.pronunciation}</span><span class="farsi-separator">-</span><span class="farsi-translation">${word.en}</span></span>`
+}
+function scheduleFarsiWordRefresh(){
+  if(farsiWordRefreshTimer) clearTimeout(farsiWordRefreshTimer)
+  const now=new Date()
+  const nextMidnight=new Date(now)
+  nextMidnight.setHours(24,0,0,100)
+  const delay=nextMidnight-now
+  farsiWordRefreshTimer=setTimeout(()=>{
+    renderFarsiWordOfDay()
+    scheduleFarsiWordRefresh()
+  },delay)
 }
 function getRandomHabitColor(){
   return HABIT_COLORS[Math.floor(Math.random()*HABIT_COLORS.length)].value
@@ -1733,6 +1769,8 @@ function getElapsedTrackableDays(totalDays,offDays){
 function render(){
   const days=daysInMonth(currentMonth,currentYear)
   monthTitle.innerText=months[currentMonth].toUpperCase()
+  renderFarsiWordOfDay()
+  scheduleFarsiWordRefresh()
 
   store[key()]??={habits:[],events:{},daily:{},monthly:{},tasks:{items:[]}}
   store[key()].daily??={}
