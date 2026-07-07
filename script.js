@@ -33,6 +33,10 @@ const gratefulBackdrop=document.getElementById('gratefulBackdrop')
 const gratefulClose=document.getElementById('gratefulClose')
 const gratefulInputs=Array.from(document.querySelectorAll('.grateful-input'))
 const gratefulTitle=document.getElementById('gratefulTitle')
+const simpleTodoBtn=document.getElementById('simpleTodoBtn')
+const simpleTodoModal=document.getElementById('simpleTodoModal')
+const simpleTodoBackdrop=document.getElementById('simpleTodoBackdrop')
+const simpleTodoClose=document.getElementById('simpleTodoClose')
 const addHabitBtn=document.getElementById('addHabitBtn')
 const habitModal=document.getElementById('habitModal')
 const habitBackdrop=document.getElementById('habitBackdrop')
@@ -585,22 +589,34 @@ async function signInWithEmail(){
   cloudLoginBtn.disabled=true
   setLoginStatus(isSignUp ? 'Signing up…' : 'Signing in…','saving')
   let result
-  if(isSignUp){
-    result = await cloudClient.auth.signUp({
-      email,
-      password
-    })
-  } else {
-    result = await cloudClient.auth.signInWithPassword({
-      email,
-      password
-    })
+  try{
+    if(isSignUp){
+      result = await cloudClient.auth.signUp({
+        email,
+        password
+      })
+    } else {
+      result = await cloudClient.auth.signInWithPassword({
+        email,
+        password
+      })
+    }
+  } catch (error) {
+    console.error('Auth failed:',error)
+    const friendlyMessage = getReadableAuthErrorMessage(error)
+    setLoginStatus(friendlyMessage,'error')
+    setCloudStatus(friendlyMessage,'error')
+    showToast(friendlyMessage)
+    cloudLoginBtn.disabled=false
+    return
   }
   const {error} = result
   if(error){
     console.error('Auth failed:',error)
-    setLoginStatus(error.message||'Authentication failed.','error')
-    setCloudStatus('Auth failed','error')
+    const friendlyMessage = getReadableAuthErrorMessage(error)
+    setLoginStatus(friendlyMessage,'error')
+    setCloudStatus(friendlyMessage,'error')
+    showToast(friendlyMessage)
     cloudLoginBtn.disabled=false
     return
   }
@@ -1156,6 +1172,17 @@ function openGratefulModal(){
 function closeGratefulModal(){
   gratefulModal.classList.remove('show')
   gratefulModal.setAttribute('aria-hidden','true')
+}
+
+function openSimpleTodoModal(){
+  simpleTodoModal.classList.add('show')
+  simpleTodoModal.setAttribute('aria-hidden','false')
+  simpleTodoClose.focus()
+}
+
+function closeSimpleTodoModal(){
+  simpleTodoModal.classList.remove('show')
+  simpleTodoModal.setAttribute('aria-hidden','true')
 }
 
 function renderDailyList(day,container,{animate=false}={}){
@@ -2071,6 +2098,9 @@ journalText.addEventListener('blur',e=>clearEditableIfEmpty(e.target))
 gratefulBtn.addEventListener('click',openGratefulModal)
 gratefulBackdrop.addEventListener('click',closeGratefulModal)
 gratefulClose.addEventListener('click',closeGratefulModal)
+simpleTodoBtn.addEventListener('click',openSimpleTodoModal)
+simpleTodoBackdrop.addEventListener('click',closeSimpleTodoModal)
+simpleTodoClose.addEventListener('click',closeSimpleTodoModal)
 gratefulInputs.forEach((input,i)=>{
   input.addEventListener('input',e=>{
     if(selectedDay===null) return
@@ -2093,6 +2123,9 @@ window.addEventListener('keydown',e=>{
   }
   if(e.key==='Escape'&&gratefulModal.classList.contains('show')){
     closeGratefulModal()
+  }
+  if(e.key==='Escape'&&simpleTodoModal.classList.contains('show')){
+    closeSimpleTodoModal()
   }
 })
 

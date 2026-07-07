@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple To-Do</title>
+  <style>
+    :root {
+      --ink: #f4efe8;
+      --muted: #b9b0a2;
+      --line: #4d4a43;
+      --paper: #2e2b26;
+      --paper-2: #3a362f;
+      --accent: #d4b98a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #1f1d1b 0%, #2c2a26 100%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .page {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 8px 0 24px;
+    }
+
+    .header {
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 4vw, 32px);
+      letter-spacing: .2px;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 6px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .task-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .task-title-stack {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .task-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      border: none;
+      background: rgba(255,255,255,.04);
+      cursor: pointer;
+      margin-top: 3px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .task-check.done {
+      background: var(--ink);
+    }
+
+    .task-check.done::after {
+      content: "✓";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 12px;
+    }
+
+    .task-input,
+    .notes-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      width: 100%;
+      padding: 0;
+      resize: none;
+      min-height: 24px;
+      line-height: 1.45;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .toolbar button,
+    .toolbar input {
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .app-shell {
+      position: relative;
+    }
+
+    .page {
+      max-width: 760px;
+      width: 100%;
+    }
+
+    .toolbar {
+      position: fixed;
+      top: 100px;
+      left: max(20px, calc(50% - 430px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      min-width: auto;
+      z-index: 20;
+    }
+
+    .toolbar button,
+    .toolbar input {
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .toolbar .toolbar-btn {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      font-weight: 700;
+    }
+
+    .toolbar .color-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: auto;
+    }
+
+    .toolbar .color-chip {
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      border-radius: 50%;
+      min-width: auto;
+      border: none;
+    }
+
+    .toolbar button.active {
+      background: rgba(255,255,255,.18);
+    }
+
+    @media (max-width: 640px) {
+      .toolbar {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: 100%;
+        padding: 8px 0;
+      }
+
+      .toolbar .toolbar-btn {
+        width: 32px;
+      }
+
+      .toolbar .color-row {
+        flex-direction: row;
+        width: auto;
+      }
+    }
+
+    .task-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      justify-self: end;
+      text-align: right;
+      margin-left: 0;
+    }
+
+    .task-due {
+      margin: 0;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 0;
+      font-size: 11px;
+      min-width: 56px;
+      text-align: right;
+    }
+
+    .task-due:focus {
+      outline: none;
+      border: none;
+      color: var(--ink);
+    }
+
+    .delete-btn {
+      margin-top: 2px;
+      padding: 0 6px;
+      font-size: 12px;
+      color: #d9a38f;
+    }
+
+    .color-chip,
+    .hide-btn,
+    .task-controls button,
+    .toolbar button,
+    .toolbar input {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .hide-btn:hover,
+    .delete-btn:hover {
+      color: var(--accent);
+    }
+
+    .delete-btn {
+      color: #d9a38f;
+    }
+
+    .color-chip.active {
+      background: rgba(255,255,255,.08);
+      color: var(--ink);
+    }
+
+    .toolbar .color-chip.white { background: #ffffff; color: var(--muted); }
+    .toolbar .color-chip.red { background: #b33a3a; color: white; }
+    .toolbar .color-chip.yellow { background: #f4d35e; color: white; }
+    .toolbar .color-chip.green { background: #6ee7a8; color: white; }
+    .toolbar .color-chip.blue { background: #2f6fec; color: white; }
+    .toolbar .color-chip.purple { background: #7b4fb5; color: white; }
+
+    .task-row.hidden .notes-input {
+      display: none;
+    }
+
+    .task-row.hidden .task-main {
+      align-items: center;
+    }
+
+    .task-hidden-label {
+      font-size: 13px;
+      color: var(--muted);
+      padding-left: 30px;
+      font-style: italic;
+    }
+
+    .task-input {
+      font-size: 15px;
+      white-space: pre-wrap;
+    }
+
+    .task-input[contenteditable="true"]:empty:before {
+      content: attr(data-placeholder);
+      color: rgba(255,255,255,.35);
+      pointer-events: none;
+    }
+
+    .task-row.done .task-input,
+    .task-row.done .notes-input {
+      text-decoration: line-through;
+      opacity: .85;
+    }
+
+    .notes-input {
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 0;
+      padding-left: 30px;
+    }
+
+    .notes-input[contenteditable="true"]:empty:before {
+      content: attr(data-placeholder);
+      color: rgba(255,255,255,.28);
+      pointer-events: none;
+    }
+
+    .task-row.new-row {
+      border-bottom-style: dashed;
+      border-color: rgba(255,255,255,.18);
+      padding-top: 12px;
+    }
+
+    .task-row.new-row .task-input {
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="toolbar" id="globalToolbar" aria-label="Text controls">
+      <button type="button" class="toolbar-btn" data-command="bold" aria-label="Bold">B</button>
+      <button type="button" class="toolbar-btn" data-command="italic" aria-label="Italic">I</button>
+      <button type="button" class="toolbar-btn" data-size="-2" aria-label="Make text smaller">-</button>
+      <button type="button" class="toolbar-btn" data-size="2" aria-label="Make text larger">+</button>
+      <div class="color-row" aria-label="Text color">
+        <button class="color-chip white" type="button" data-color="#ffffff" aria-label="White text"></button>
+        <button class="color-chip red" type="button" data-color="#b33a3a" aria-label="Red text"></button>
+        <button class="color-chip yellow" type="button" data-color="#f4d35e" aria-label="Yellow text"></button>
+        <button class="color-chip green" type="button" data-color="#6ee7a8" aria-label="Green text"></button>
+        <button class="color-chip blue" type="button" data-color="#2f6fec" aria-label="Blue text"></button>
+        <button class="color-chip purple" type="button" data-color="#7b4fb5" aria-label="Purple text"></button>
+      </div>
+    </aside>
+    <main class="page">
+      <header class="header">
+        <h1>To-do</h1>
+      </header>
+
+      <section id="taskList" class="task-list" aria-label="Task list"></section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'lifeline-simple-todos-v1';
+    const DEFAULT_TEXT_COLOR = '#ffffff';
+    const REMOVED_TEXT_COLORS = ['#2e7d5b', 'rgb(46, 125, 91)'];
+    const taskList = document.getElementById('taskList');
+
+    const loadedTasks = loadTasks();
+    let tasks = cleanTasks(loadedTasks);
+    if (JSON.stringify(tasks) !== JSON.stringify(loadedTasks)) {
+      saveTasks();
+    }
+
+    function loadTasks() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (error) {
+        console.warn('Could not load tasks', error);
+        return [];
+      }
+    }
+
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function createTask(text = '') {
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        text,
+        notes: '',
+        done: false,
+        color: DEFAULT_TEXT_COLOR,
+        hidden: false,
+        due: ''
+      };
+    }
+
+    function normalizeTextColor(color) {
+      return REMOVED_TEXT_COLORS.includes(String(color).toLowerCase()) ? DEFAULT_TEXT_COLOR : color;
+    }
+
+    function normalizeFontSize(fontSize) {
+      const size = parseFloat(fontSize);
+      return Number.isFinite(size) ? `${clampTextSize(size)}px` : '';
+    }
+
+    function cleanTextHtml(value = '') {
+      const template = document.createElement('template');
+      template.innerHTML = value;
+      template.content.querySelectorAll('[style]').forEach(el => {
+        const color = normalizeTextColor(el.style.color);
+        const fontSize = normalizeFontSize(el.style.fontSize);
+        const fontWeight = el.style.fontWeight;
+        const fontStyle = el.style.fontStyle;
+        const textDecoration = el.style.textDecoration;
+        el.removeAttribute('style');
+        if (color) el.style.color = color;
+        if (fontSize) el.style.fontSize = fontSize;
+        if (fontWeight) el.style.fontWeight = fontWeight;
+        if (fontStyle) el.style.fontStyle = fontStyle;
+        if (textDecoration) el.style.textDecoration = textDecoration;
+      });
+      return template.innerHTML;
+    }
+
+    function cleanTasks(items) {
+      return items.map(task => ({
+        ...task,
+        text: cleanTextHtml(task.text || ''),
+        notes: cleanTextHtml(task.notes || ''),
+        color: normalizeTextColor(task.color || DEFAULT_TEXT_COLOR)
+      }));
+    }
+
+    function normalizeText(value) {
+      return value.replace(/<br\s*\/?>/gi, '\n').replace(/<div>/gi, '\n').replace(/<\/div>/gi, '').replace(/<p>/gi, '').replace(/<\/p>/gi, '').replace(/&nbsp;/gi, ' ').trim();
+    }
+
+    let activeEditable = null;
+    const toolbar = document.getElementById('globalToolbar');
+
+    document.addEventListener('focusin', event => {
+      if (event.target && event.target.isContentEditable) {
+        activeEditable = event.target;
+      }
+    });
+
+    toolbar.addEventListener('mousedown', event => {
+      if (event.target.closest('button')) {
+        event.preventDefault();
+      }
+    });
+
+    toolbar.addEventListener('click', event => {
+      const button = event.target.closest('button[data-command], button[data-color], button[data-size]');
+      if (!button) return;
+      event.preventDefault();
+      const size = button.dataset.size;
+      if (size) {
+        applyTextSize(Number(size));
+        return;
+      }
+      const color = button.dataset.color;
+      if (color) {
+        applyTextColor(color);
+        return;
+      }
+      const command = button.dataset.command;
+      if (command) {
+        applyTextCommand(command);
+      }
+    });
+
+    function placeCaretAtEnd(el) {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    function saveEditableValue(el, options = {}) {
+      if (!el || !el.dataset) return;
+      const row = el.closest('.task-row');
+      if (!row) return;
+      const task = tasks.find(item => item.id === row.dataset.taskId);
+      if (!task) return;
+      const cleanedHtml = cleanTextHtml(el.innerHTML);
+      if (options.updateDom && el.innerHTML !== cleanedHtml) {
+        el.innerHTML = cleanedHtml;
+        placeCaretAtEnd(el);
+      }
+      if (el.dataset.role === 'task') {
+        task.text = cleanedHtml;
+      } else if (el.dataset.role === 'notes') {
+        task.notes = cleanedHtml;
+      }
+    }
+
+    function getEditableTask(el) {
+      if (!el || !el.dataset) return null;
+      const row = el.closest('.task-row');
+      if (!row) return null;
+      return tasks.find(item => item.id === row.dataset.taskId) || null;
+    }
+
+    function applyTextCommand(command) {
+      if (!activeEditable) return;
+      try {
+        document.execCommand('styleWithCSS', false, true);
+      } catch (error) {
+        // ignore
+      }
+      document.execCommand(command, false, null);
+      saveEditableValue(activeEditable);
+      saveTasks();
+    }
+
+    function applyTextColor(color) {
+      const active = activeEditable;
+      if (!active) return;
+      color = normalizeTextColor(color);
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+        try {
+          document.execCommand('styleWithCSS', false, true);
+          document.execCommand('foreColor', false, color);
+        } catch (error) {
+          const range = selection.getRangeAt(0);
+          const span = document.createElement('span');
+          span.style.color = color;
+          const fragment = range.extractContents();
+          span.appendChild(fragment);
+          range.insertNode(span);
+        }
+      } else {
+        active.style.color = color;
+      }
+      if (active.dataset.role === 'task') {
+        const task = getEditableTask(active);
+        if (task) {
+          task.color = color;
+          const dueInput = active.closest('.task-row')?.querySelector('.task-due');
+          if (dueInput) dueInput.style.color = color;
+        }
+      }
+      saveEditableValue(active);
+      saveTasks();
+    }
+
+    function clampTextSize(size) {
+      return Math.min(32, Math.max(10, size));
+    }
+
+    function selectionIsInside(selection, el) {
+      return selection && selection.anchorNode && selection.focusNode && el.contains(selection.anchorNode) && el.contains(selection.focusNode);
+    }
+
+    function getBlockSizeTarget(el) {
+      const nodes = Array.from(el.childNodes);
+      return nodes.length === 1 && nodes[0].nodeType === Node.ELEMENT_NODE ? nodes[0] : el;
+    }
+
+    function clearNestedFontSizes(root) {
+      root.querySelectorAll('[style]').forEach(el => {
+        el.style.fontSize = '';
+        if (!el.getAttribute('style')) {
+          el.removeAttribute('style');
+        }
+      });
+    }
+
+    function applyBlockTextSize(el, size) {
+      const target = getBlockSizeTarget(el);
+      if (target !== el && target.tagName === 'SPAN') {
+        clearNestedFontSizes(target);
+        target.style.fontSize = `${size}px`;
+        return;
+      }
+      const span = document.createElement('span');
+      span.style.fontSize = `${size}px`;
+      while (el.firstChild) {
+        span.appendChild(el.firstChild);
+      }
+      clearNestedFontSizes(span);
+      span.style.fontSize = `${size}px`;
+      el.appendChild(span);
+      placeCaretAtEnd(el);
+    }
+
+    function applyTextSize(delta) {
+      const active = activeEditable;
+      if (!active) return;
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && !selection.isCollapsed && selectionIsInside(selection, active)) {
+        const range = selection.getRangeAt(0);
+        const ancestor = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
+        const currentSize = parseFloat(window.getComputedStyle(ancestor || active).fontSize);
+        const span = document.createElement('span');
+        span.style.fontSize = `${clampTextSize(currentSize + delta)}px`;
+        span.appendChild(range.extractContents());
+        clearNestedFontSizes(span);
+        span.style.fontSize = `${clampTextSize(currentSize + delta)}px`;
+        range.insertNode(span);
+        selection.removeAllRanges();
+        const updatedRange = document.createRange();
+        updatedRange.selectNodeContents(span);
+        selection.addRange(updatedRange);
+      } else {
+        const target = getBlockSizeTarget(active);
+        const currentSize = parseFloat(window.getComputedStyle(target).fontSize);
+        applyBlockTextSize(active, clampTextSize(currentSize + delta));
+      }
+      saveEditableValue(active);
+      saveTasks();
+    }
+
+    function insertPlainText(text) {
+      const selection = window.getSelection();
+      if (!selection || !selection.rangeCount) return false;
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(text);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return true;
+    }
+
+    function handleEditablePaste(event) {
+      event.preventDefault();
+      if (insertPlainText(event.clipboardData?.getData('text/plain') || '')) {
+        event.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    function renderTasks() {
+      const completed = tasks.filter(task => task.done).length;
+      taskList.innerHTML = '';
+
+      if (!tasks.length) {
+        taskList.innerHTML = '<div class="meta">Nothing here yet. Start writing on the line below.</div>';
+      }
+
+      const list = document.createElement('div');
+      list.className = 'task-list';
+      taskList.appendChild(list);
+
+      tasks.forEach(task => {
+        const row = document.createElement('div');
+        row.className = `task-row${task.done ? ' done' : ''}${task.hidden ? ' hidden' : ''}`;
+        row.dataset.taskId = task.id;
+        row.draggable = true;
+        row.addEventListener('dragstart', (event) => {
+          event.dataTransfer.setData('text/plain', task.id);
+          event.dataTransfer.effectAllowed = 'move';
+        });
+        row.addEventListener('dragover', (event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+        });
+        row.addEventListener('drop', (event) => {
+          event.preventDefault();
+          const draggedId = event.dataTransfer.getData('text/plain');
+          const targetId = row.dataset.taskId;
+          if (!draggedId || draggedId === targetId) return;
+
+          const draggedIndex = tasks.findIndex(item => item.id === draggedId);
+          const targetIndex = tasks.findIndex(item => item.id === targetId);
+          if (draggedIndex === -1 || targetIndex === -1) return;
+
+          const [draggedTask] = tasks.splice(draggedIndex, 1);
+          tasks.splice(targetIndex, 0, draggedTask);
+          saveTasks();
+          renderTasks();
+        });
+        const main = document.createElement('div');
+        main.className = 'task-main';
+
+        const check = document.createElement('button');
+        check.type = 'button';
+        check.className = `task-check${task.done ? ' done' : ''}`;
+        check.setAttribute('aria-label', task.done ? 'Mark as not done' : 'Mark as done');
+        check.addEventListener('click', () => {
+          task.done = !task.done;
+          saveTasks();
+          renderTasks();
+        });
+
+        const input = document.createElement('div');
+        input.className = 'task-input';
+        input.setAttribute('contenteditable', 'true');
+        input.dataset.placeholder = 'Write a task...';
+        input.dataset.role = 'task';
+        input.innerHTML = cleanTextHtml(task.text || '');
+        task.color = normalizeTextColor(task.color || DEFAULT_TEXT_COLOR);
+        input.style.color = task.color;
+        input.addEventListener('input', () => {
+          saveEditableValue(input);
+          saveTasks();
+        });
+        input.addEventListener('paste', handleEditablePaste);
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            notesInput.focus();
+          }
+        });
+
+        const notesInput = document.createElement('div');
+        notesInput.className = 'notes-input';
+        notesInput.setAttribute('contenteditable', 'true');
+        notesInput.dataset.placeholder = 'Notes';
+        notesInput.dataset.role = 'notes';
+        notesInput.innerHTML = cleanTextHtml(task.notes || '');
+        notesInput.style.color = task.color;
+        notesInput.addEventListener('input', () => {
+          saveEditableValue(notesInput);
+          saveTasks();
+        });
+        notesInput.addEventListener('paste', handleEditablePaste);
+
+        const titleStack = document.createElement('div');
+        titleStack.className = 'task-title-stack';
+
+        const titleControls = document.createElement('div');
+        titleControls.className = 'task-title-controls';
+
+        const hideBtn = document.createElement('button');
+        hideBtn.type = 'button';
+        hideBtn.className = 'hide-btn';
+        hideBtn.textContent = task.hidden ? 'show' : 'hide';
+        hideBtn.addEventListener('click', () => {
+          task.hidden = !task.hidden;
+          saveTasks();
+          renderTasks();
+        });
+        titleControls.appendChild(hideBtn);
+
+        const controls = document.createElement('div');
+        controls.className = 'task-controls';
+
+        const dueInput = document.createElement('input');
+        dueInput.type = 'text';
+        dueInput.className = 'task-due';
+        dueInput.placeholder = 'due';
+        dueInput.value = task.due || '';
+        dueInput.style.color = task.color;
+        dueInput.addEventListener('input', () => {
+          task.due = dueInput.value;
+          saveTasks();
+        });
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'hide-btn delete-btn';
+        deleteBtn.textContent = 'x';
+        deleteBtn.addEventListener('click', () => {
+          if (!confirm('Delete this task?')) return;
+          tasks = tasks.filter(item => item.id !== task.id);
+          saveTasks();
+          renderTasks();
+        });
+
+        controls.appendChild(dueInput);
+        controls.appendChild(deleteBtn);
+
+        titleStack.append(input, titleControls);
+        main.append(check, titleStack);
+        row.append(main, controls, notesInput);
+        list.appendChild(row);
+      });
+
+      const newRow = document.createElement('div');
+      newRow.className = 'task-row new-row';
+      const newMain = document.createElement('div');
+      newMain.className = 'task-main';
+      const newCheck = document.createElement('div');
+      newCheck.className = 'task-check';
+      const newInput = document.createElement('div');
+      newInput.className = 'task-input';
+      newInput.setAttribute('contenteditable', 'true');
+      newInput.dataset.placeholder = 'Write a task...';
+      newInput.addEventListener('input', () => {
+        const value = normalizeText(newInput.innerHTML);
+        if (!value) return;
+        tasks.unshift(createTask(value));
+        saveTasks();
+        renderTasks();
+        requestAnimationFrame(() => {
+          const firstTask = taskList.querySelector('.task-row:not(.new-row) .task-input');
+          if (firstTask) {
+            firstTask.focus();
+            placeCaretAtEnd(firstTask);
+          }
+        });
+      });
+      newInput.addEventListener('paste', handleEditablePaste);
+      newMain.append(newCheck, newInput);
+      newRow.appendChild(newMain);
+      list.appendChild(newRow);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `${tasks.length} task${tasks.length === 1 ? '' : 's'} • ${completed} done`;
+      taskList.appendChild(meta);
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
