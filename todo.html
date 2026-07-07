@@ -382,6 +382,9 @@
         <button class="color-chip blue" type="button" data-color="#2f6fec" aria-label="Blue text"></button>
         <button class="color-chip purple" type="button" data-color="#7b4fb5" aria-label="Purple text"></button>
       </div>
+      <button type="button" class="toolbar-btn" id="backupTasksBtn" aria-label="Download task backup">Save</button>
+      <button type="button" class="toolbar-btn" id="restoreTasksBtn" aria-label="Restore task backup">Load</button>
+      <input id="restoreTasksInput" type="file" accept="application/json,.json" hidden>
     </aside>
     <main class="page">
       <header class="header">
@@ -397,6 +400,9 @@
     const DEFAULT_TEXT_COLOR = '#ffffff';
     const REMOVED_TEXT_COLORS = ['#2e7d5b', 'rgb(46, 125, 91)'];
     const taskList = document.getElementById('taskList');
+    const backupTasksBtn = document.getElementById('backupTasksBtn');
+    const restoreTasksBtn = document.getElementById('restoreTasksBtn');
+    const restoreTasksInput = document.getElementById('restoreTasksInput');
 
     const loadedTasks = loadTasks();
     let tasks = cleanTasks(loadedTasks);
@@ -416,6 +422,51 @@
 
     function saveTasks() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function downloadTaskBackup() {
+      const backup = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        storageKey: STORAGE_KEY,
+        tasks
+      };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `simple-todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function getTasksFromBackup(value) {
+      const parsed = JSON.parse(value);
+      const importedTasks = Array.isArray(parsed) ? parsed : parsed?.tasks;
+      if (!Array.isArray(importedTasks)) {
+        throw new Error('Backup did not contain a task list.');
+      }
+      return cleanTasks(importedTasks);
+    }
+
+    async function restoreTaskBackup(file) {
+      if (!file) return;
+      try {
+        const restoredTasks = getTasksFromBackup(await file.text());
+        const count = restoredTasks.length;
+        const message = count === 1 ? 'Restore 1 task?' : `Restore ${count} tasks?`;
+        if (!confirm(`${message} This will replace the current simple to-do list.`)) return;
+        tasks = restoredTasks;
+        saveTasks();
+        renderTasks();
+      } catch (error) {
+        console.warn('Could not restore tasks', error);
+        alert('Could not restore that backup file.');
+      } finally {
+        restoreTasksInput.value = '';
+      }
     }
 
     function createTask(text = '') {
@@ -505,6 +556,10 @@
         applyTextCommand(command);
       }
     });
+
+    backupTasksBtn.addEventListener('click', downloadTaskBackup);
+    restoreTasksBtn.addEventListener('click', () => restoreTasksInput.click());
+    restoreTasksInput.addEventListener('change', () => restoreTaskBackup(restoreTasksInput.files?.[0]));
 
     function placeCaretAtEnd(el) {
       const range = document.createRange();
